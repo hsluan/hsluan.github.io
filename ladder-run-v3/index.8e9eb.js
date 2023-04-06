@@ -1,4 +1,4 @@
-System.register(["./application.e12f1.js"], function (_export, _context) {
+System.register(["./application.d32b7.js"], function (_export, _context) {
   "use strict";
 
   var Application, canvas, $p, bcr, application;
@@ -8,8 +8,8 @@ System.register(["./application.e12f1.js"], function (_export, _context) {
   }
 
   return {
-    setters: [function (_applicationE12f1Js) {
-      Application = _applicationE12f1Js.Application;
+    setters: [function (_applicationD32b7Js) {
+      Application = _applicationD32b7Js.Application;
     }],
     execute: function () {
       canvas = document.getElementById('GameCanvas');
