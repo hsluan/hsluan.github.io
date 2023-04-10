@@ -16,7 +16,7 @@ System.register([], function (_export, _context) {
         function Application() {
           _classCallCheck(this, Application);
 
-          this.settingsPath = 'src/settings.cad5f.json';
+          this.settingsPath = 'src/settings.011f1.json';
           this.showFPS = false;
         }
 
