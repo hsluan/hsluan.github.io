@@ -1,4 +1,4 @@
-System.register(["./application.e7eda.js"], function (_export, _context) {
+System.register(["./application.d29d9.js"], function (_export, _context) {
   "use strict";
 
   var Application, canvas, $p, bcr, application;
@@ -8,8 +8,8 @@ System.register(["./application.e7eda.js"], function (_export, _context) {
   }
 
   return {
-    setters: [function (_applicationE7edaJs) {
-      Application = _applicationE7edaJs.Application;
+    setters: [function (_applicationD29d9Js) {
+      Application = _applicationD29d9Js.Application;
     }],
     execute: function () {
       canvas = document.getElementById('GameCanvas');
