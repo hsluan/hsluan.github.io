@@ -1,4 +1,4 @@
-System.register(["./application.ee33c.js"], function (_export, _context) {
+System.register(["./application.e5353.js"], function (_export, _context) {
   "use strict";
 
   var Application, canvas, $p, bcr, application;
@@ -8,8 +8,8 @@ System.register(["./application.ee33c.js"], function (_export, _context) {
   }
 
   return {
-    setters: [function (_applicationEe33cJs) {
-      Application = _applicationEe33cJs.Application;
+    setters: [function (_applicationE5353Js) {
+      Application = _applicationE5353Js.Application;
     }],
     execute: function () {
       canvas = document.getElementById('GameCanvas');
