@@ -3064,16 +3064,6 @@
   function _serverAppCurrentUserOperationNotSupportedError(auth) {
       return _errorWithCustomMessage(auth, "operation-not-supported-in-this-environment" /* AuthErrorCode.OPERATION_NOT_SUPPORTED */, 'Operations that alter the current user are not supported in conjunction with FirebaseServerApp');
   }
-  function _assertInstanceOf(auth, object, instance) {
-      const constructorInstance = instance;
-      if (!(object instanceof constructorInstance)) {
-          if (constructorInstance.name !== object.constructor.name) {
-              _fail(auth, "argument-error" /* AuthErrorCode.ARGUMENT_ERROR */);
-          }
-          throw _errorWithCustomMessage(auth, "argument-error" /* AuthErrorCode.ARGUMENT_ERROR */, `Type of ${object.constructor.name} does not match expected instance.` +
-              `Did you pass a reference from a different Auth SDK?`);
-      }
-  }
   function createErrorInternal(authOrCode, ...rest) {
       if (typeof authOrCode !== 'string') {
           const code = rest[0];
@@ -7666,133 +7656,6 @@
    * limitations under the License.
    */
   const _POLL_WINDOW_CLOSE_TIMEOUT = new Delay(2000, 10000);
-  /**
-   * Authenticates a Firebase client using a popup-based OAuth authentication flow.
-   *
-   * @remarks
-   * If succeeds, returns the signed in user along with the provider's credential. If sign in was
-   * unsuccessful, returns an error object containing additional information about the error.
-   *
-   * This method does not work in a Node.js environment or with {@link Auth} instances created with a
-   * {@link @firebase/app#FirebaseServerApp}.
-   *
-   * @example
-   * ```javascript
-   * // Sign in using a popup.
-   * const provider = new FacebookAuthProvider();
-   * const result = await signInWithPopup(auth, provider);
-   *
-   * // The signed-in user info.
-   * const user = result.user;
-   * // This gives you a Facebook Access Token.
-   * const credential = provider.credentialFromResult(auth, result);
-   * const token = credential.accessToken;
-   * ```
-   *
-   * @param auth - The {@link Auth} instance.
-   * @param provider - The provider to authenticate. The provider has to be an {@link OAuthProvider}.
-   * Non-OAuth providers like {@link EmailAuthProvider} will throw an error.
-   * @param resolver - An instance of {@link PopupRedirectResolver}, optional
-   * if already supplied to {@link initializeAuth} or provided by {@link getAuth}.
-   *
-   * @public
-   */
-  async function signInWithPopup(auth, provider, resolver) {
-      if (_isFirebaseServerApp(auth.app)) {
-          return Promise.reject(_createError(auth, "operation-not-supported-in-this-environment" /* AuthErrorCode.OPERATION_NOT_SUPPORTED */));
-      }
-      const authInternal = _castAuth(auth);
-      _assertInstanceOf(auth, provider, FederatedAuthProvider);
-      const resolverInternal = _withDefaultResolver(authInternal, resolver);
-      const action = new PopupOperation(authInternal, "signInViaPopup" /* AuthEventType.SIGN_IN_VIA_POPUP */, provider, resolverInternal);
-      return action.executeNotNull();
-  }
-  /**
-   * Popup event manager. Handles the popup's entire lifecycle; listens to auth
-   * events
-   *
-   */
-  class PopupOperation extends AbstractPopupRedirectOperation {
-      constructor(auth, filter, provider, resolver, user) {
-          super(auth, filter, resolver, user);
-          this.provider = provider;
-          this.authWindow = null;
-          this.pollId = null;
-          if (PopupOperation.currentPopupAction) {
-              PopupOperation.currentPopupAction.cancel();
-          }
-          PopupOperation.currentPopupAction = this;
-      }
-      async executeNotNull() {
-          const result = await this.execute();
-          _assert(result, this.auth, "internal-error" /* AuthErrorCode.INTERNAL_ERROR */);
-          return result;
-      }
-      async onExecution() {
-          debugAssert(this.filter.length === 1, 'Popup operations only handle one event');
-          const eventId = _generateEventId();
-          this.authWindow = await this.resolver._openPopup(this.auth, this.provider, this.filter[0], // There's always one, see constructor
-          eventId);
-          this.authWindow.associatedEvent = eventId;
-          // Check for web storage support and origin validation _after_ the popup is
-          // loaded. These operations are slow (~1 second or so) Rather than
-          // waiting on them before opening the window, optimistically open the popup
-          // and check for storage support at the same time. If storage support is
-          // not available, this will cause the whole thing to reject properly. It
-          // will also close the popup, but since the promise has already rejected,
-          // the popup closed by user poll will reject into the void.
-          this.resolver._originValidation(this.auth).catch(e => {
-              this.reject(e);
-          });
-          this.resolver._isIframeWebStorageSupported(this.auth, isSupported => {
-              if (!isSupported) {
-                  this.reject(_createError(this.auth, "web-storage-unsupported" /* AuthErrorCode.WEB_STORAGE_UNSUPPORTED */));
-              }
-          });
-          // Handle user closure. Notice this does *not* use await
-          this.pollUserCancellation();
-      }
-      get eventId() {
-          var _a;
-          return ((_a = this.authWindow) === null || _a === void 0 ? void 0 : _a.associatedEvent) || null;
-      }
-      cancel() {
-          this.reject(_createError(this.auth, "cancelled-popup-request" /* AuthErrorCode.EXPIRED_POPUP_REQUEST */));
-      }
-      cleanUp() {
-          if (this.authWindow) {
-              this.authWindow.close();
-          }
-          if (this.pollId) {
-              window.clearTimeout(this.pollId);
-          }
-          this.authWindow = null;
-          this.pollId = null;
-          PopupOperation.currentPopupAction = null;
-      }
-      pollUserCancellation() {
-          const poll = () => {
-              var _a, _b;
-              if ((_b = (_a = this.authWindow) === null || _a === void 0 ? void 0 : _a.window) === null || _b === void 0 ? void 0 : _b.closed) {
-                  // Make sure that there is sufficient time for whatever action to
-                  // complete. The window could have closed but the sign in network
-                  // call could still be in flight. This is specifically true for
-                  // Firefox or if the opener is in an iframe, in which case the oauth
-                  // helper closes the popup.
-                  this.pollId = window.setTimeout(() => {
-                      this.pollId = null;
-                      this.reject(_createError(this.auth, "popup-closed-by-user" /* AuthErrorCode.POPUP_CLOSED_BY_USER */));
-                  }, 8000 /* _Timeout.AUTH_EVENT */);
-                  return;
-              }
-              this.pollId = window.setTimeout(poll, _POLL_WINDOW_CLOSE_TIMEOUT.get());
-          };
-          poll();
-      }
-  }
-  // Only one popup is ever shown at once. The lifecycle of the current popup
-  // can be managed / cancelled by the constructor.
-  PopupOperation.currentPopupAction = null;
 
   /**
    * @license
@@ -7889,6 +7752,51 @@
   }
   function pendingRedirectKey(auth) {
       return _persistenceKeyName(PENDING_REDIRECT_KEY, auth.config.apiKey, auth.name);
+  }
+  /**
+   * Returns a {@link UserCredential} from the redirect-based sign-in flow.
+   *
+   * @remarks
+   * If sign-in succeeded, returns the signed in user. If sign-in was unsuccessful, fails with an
+   * error. If no redirect operation was called, returns `null`.
+   *
+   * This method does not work in a Node.js environment or with {@link Auth} instances created with a
+   * {@link @firebase/app#FirebaseServerApp}.
+   *
+   * @example
+   * ```javascript
+   * // Sign in using a redirect.
+   * const provider = new FacebookAuthProvider();
+   * // You can add additional scopes to the provider:
+   * provider.addScope('user_birthday');
+   * // Start a sign in process for an unauthenticated user.
+   * await signInWithRedirect(auth, provider);
+   * // This will trigger a full page redirect away from your app
+   *
+   * // After returning from the redirect when your app initializes you can obtain the result
+   * const result = await getRedirectResult(auth);
+   * if (result) {
+   *   // This is the signed-in user
+   *   const user = result.user;
+   *   // This gives you a Facebook Access Token.
+   *   const credential = provider.credentialFromResult(auth, result);
+   *   const token = credential.accessToken;
+   * }
+   * // As this API can be used for sign-in, linking and reauthentication,
+   * // check the operationType to determine what triggered this redirect
+   * // operation.
+   * const operationType = result.operationType;
+   * ```
+   *
+   * @param auth - The {@link Auth} instance.
+   * @param resolver - An instance of {@link PopupRedirectResolver}, optional
+   * if already supplied to {@link initializeAuth} or provided by {@link getAuth}.
+   *
+   * @public
+   */
+  async function getRedirectResult(auth, resolver) {
+      await _castAuth(auth)._initializationPromise;
+      return _getRedirectResult(auth, resolver, false);
   }
   async function _getRedirectResult(auth, resolverExtern, bypassAuthState = false) {
       if (_isFirebaseServerApp(auth.app)) {
@@ -8860,11 +8768,34 @@
       var provider = new GoogleAuthProvider();
       provider.addScope('openid');
       provider.addScope('https://www.googleapis.com/auth/userinfo.email');
-      provider.addScope('https://www.googleapis.com/auth/userinfo.profile');
-      signInWithPopup(auth, provider).then(function (result) {
-        // This gives you a Google Access Token. You can use it to access the Google API.
+      provider.addScope('https://www.googleapis.com/auth/userinfo.profile'); // signInWithPopup(auth, provider)
+      //   .then((result) => {
+      //     // This gives you a Google Access Token. You can use it to access the Google API.
+      //     const credential = GoogleAuthProvider.credentialFromResult(result);
+      //     // const token = credential.accessToken;
+      //     // const user = result.user;
+      //     console.log(credential);
+      //     resolve(credential);
+      //   }).catch((error) => {
+      //     console.log(error);
+      //     resolve(error);
+      //     // // Handle Errors here.
+      //     // const errorCode = error.code;
+      //     // const errorMessage = error.message;
+      //     // // The email of the user's account used.
+      //     // const email = error.customData.email;
+      //     // // The AuthCredential type that was used.
+      //     // const credential = GoogleAuthProvider.credentialFromError(error);
+      //     // // ...
+      //   });
+
+      getRedirectResult(auth).then(function (result) {
+        // This gives you a Google Access Token. You can use it to access Google APIs.
         var credential = GoogleAuthProvider.credentialFromResult(result); // const token = credential.accessToken;
+        // // The signed-in user info.
         // const user = result.user;
+        // // IdP data available using getAdditionalUserInfo(result)
+        // // ...
 
         console.log(credential);
         resolve(credential);
