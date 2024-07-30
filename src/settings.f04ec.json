@@ -60,7 +60,7 @@
         ],
         "bundleVers": {
             "internal": "72278",
-            "main": "1f02a"
+            "main": "d589c"
         },
         "preloadAssets": [],
         "projectBundles": [
@@ -69,11 +69,13 @@
         ]
     },
     "plugins": {
-        "jsList": []
+        "jsList": [
+            "assets/scripts/libs/ramperinstant.umd.development.89351.js"
+        ]
     },
     "scripting": {
         "scriptPackages": [
-            "../src/chunks/bundle.bc6d8.js"
+            "../src/chunks/bundle.aaa18.js"
         ]
     },
     "launch": {
