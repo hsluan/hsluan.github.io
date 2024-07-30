@@ -365,9 +365,8 @@
       platform.env.environment = options.serverEnv;
       platform.env.partner = options.partner;
       platform.setOnRecieveMessageCallback(onReceiveMessageCallback);
-      ScriptDownloader.downloadScriptWeb('https://accounts.google.com/gsi/client').then(function (values) {
-        resolve(values);
-      }); //this.onClickSignin(`${Constant.END_POINT}test?credentialResponse=${identityCredentials['credential']}&message=Welcome&partner=coin98&provider=google&${Constant.FLAG_COCOS}`);
+      resolve({})
+      //this.onClickSignin(`${Constant.END_POINT}test?credentialResponse=${identityCredentials['credential']}&message=Welcome&partner=coin98&provider=google&${Constant.FLAG_COCOS}`);
       // const auth = getAuth(initFirebaseApp());
       // const provider = new GoogleAuthProvider();
       // provider.addScope('openid');
