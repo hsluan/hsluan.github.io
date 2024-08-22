@@ -38,66 +38,68 @@
 <html>
 
 <head>
-    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-    <meta http-equiv="Pragma" content="no-cache">
-    <meta http-equiv="Expires" content="0">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
 
-    <script src="https://unpkg.com/vconsole@3.11.1/dist/vconsole.min.js"></script>
-    <script type="text/javascript">
-        // open web debugger console
-        window.VConsole && (window.vConsole = new VConsole());
-    </script>
-    <script async src="https://telegram.org/js/telegram-widget.js?22" data-telegram-login="c98slave_bot"
-        data-size="large" data-onauth="onTelegramAuth(user)" data-request-access="write"></script>
-    <script type="text/javascript">
-        function onTelegramAuth(user) {
-            console.log("[onTelegramAuth] user", user);
-            for (let key in user) {
-                console.log(`${key} = ${{ ...user[key] }}`)
-            }
-        }
-        function onClickText() {
-            console.log("TEST")
-        }
-    </script>
+  <script src="https://unpkg.com/vconsole@3.11.1/dist/vconsole.min.js"></script>
+  <script type="text/javascript">
+    // open web debugger console
+    window.VConsole && (window.vConsole = new VConsole());
+  </script>
+  <script async src="https://telegram.org/js/telegram-widget.js?22" data-telegram-login="c98slave_bot" data-size="large"
+    data-onauth="onTelegramAuth(user)" data-request-access="write"></script>
+  <script type="text/javascript">
+    console.log("[onTelegramAuth] user", user);
+    function onTelegramAuth(user) {
+      for (let key in user) {
+        console.log(`${key} = ${{ ...user[key] }}`)
+      }
+      const myElement = document.getElementById("hi");
+      myElement.innerText = JSON.stringify(user);
+    }
+    function onClickText() {
+      console.log("TEST", window.location.href)
+    }
+  </script>
 </head>
 
 <body>
-    <div>LOGIN TELEGRAM SAMPLE 3</div>
-    <button onclick="onClickText">TEST1</button>
-    <script type="text/javascript">
-        document.addEventListener('DOMContentLoaded', () => {
-            // Ensure Telegram WebApp is available
-            if (window.Telegram.WebApp.initData) {
-                const initData = window.Telegram.WebApp.initData;
-                const initDataUnsafe = window.Telegram.WebApp.initDataUnsafe;
+  <div>LOGIN TELEGRAM SAMPLE 3</div>
+  <button onclick="onClickText">TEST2</button>
+  <script type="text/javascript">
+    document.addEventListener('DOMContentLoaded', () => {
+      // Ensure Telegram WebApp is available
+      if (window.Telegram.WebApp.initData) {
+        const initData = window.Telegram.WebApp.initData;
+        const initDataUnsafe = window.Telegram.WebApp.initDataUnsafe;
 
-                // JWT token is part of the initData
-                const jwtToken = initData; // This is the entire JWT token provided by Telegram
+        // JWT token is part of the initData
+        const jwtToken = initData; // This is the entire JWT token provided by Telegram
 
-                console.log('JWT Token:', jwtToken);
-                console.log('User Information:', initDataUnsafe.user);
+        console.log('JWT Token:', jwtToken);
+        console.log('User Information:', initDataUnsafe.user);
 
-                // Send JWT token to your backend server for validation
-                fetch('/api/validate-token', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ token: jwtToken })
-                })
-                    .then(response => response.json())
-                    .then(data => {
-                        console.log('Token validation response:', data);
-                    })
-                    .catch((error) => {
-                        console.error('Error:', error);
-                    });
-            } else {
-                console.error('Telegram WebApp is not initialized.');
-            }
-        });
-    </script>
+        // Send JWT token to your backend server for validation
+        fetch('/api/validate-token', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ token: jwtToken })
+        })
+          .then(response => response.json())
+          .then(data => {
+            console.log('Token validation response:', data);
+          })
+          .catch((error) => {
+            console.error('Error:', error);
+          });
+      } else {
+        console.error('Telegram WebApp is not initialized.');
+      }
+    });
+  </script>
 </body>
 
 
